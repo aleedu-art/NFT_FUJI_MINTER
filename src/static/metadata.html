@@ -244,7 +244,10 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="chainlink-contract-address" class="form-label">Contrato Chainlink Functions:</label>
-                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x...">
+                        <!-- <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x..."> -->
+                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x02d5E9C8BD9604fD838D79114505E35c14A1657a">
+
+                        
                     </div>
                 </div>
                 
@@ -604,7 +607,9 @@
                 const uploadData = await uploadResponse.json();
                 const ipfsHash = uploadData.IpfsHash;
                 document.getElementById('ipfs-hash').textContent = ipfsHash;
-                document.getElementById('uploaded-image').src = `https://ipfs.io/ipfs/${ipfsHash}`;
+              //  document.getElementById('uploaded-image').src = `https://ipfs.io/ipfs/${ipfsHash}`;
+                document.getElementById('uploaded-image').src = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+              
                 document.getElementById('image-preview').style.display = 'block';
                 logDebugMessage(`Image uploaded to IPFS. Hash: ${ipfsHash}`);
 
