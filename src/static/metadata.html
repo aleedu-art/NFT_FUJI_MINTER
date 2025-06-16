@@ -145,7 +145,7 @@
                 <span id="wallet-text">Carteira não conectada</span>
             </p>
             <p class="mb-0">
-                <small>Contrato: <span id="contract-address">Não configurado</span></small>
+                <small>Contrato: <span id="chainlink-status-display">Não configurado</span></small>
             </p>
         </div>
 
@@ -236,11 +236,14 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="contract-address" class="form-label">Endereço do Contrato NFT:</label>
-                        <input type="text" class="form-control" id="contract-address" value="0xC1B247Ea8DaE4912Bf4216A6E8954aa90C779ABD">
+                        <!-- <input type="text" class="form-control" id="contract-address" value="0xC1B247Ea8DaE4912Bf4216A6E8954aa90C779ABD"> -->
+                        <input type="text" class="form-control" id="contract-address" value="0x742Ac849BB8f0fEbc0ad5EcDE84B5B5f0632366B">
+
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="chainlink-contract-address" class="form-label">Contrato Chainlink Functions:</label>
-                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x...">
+                        <!-- <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x...">-->
+                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x02d5E9C8BD9604fD838D79114505E35c14A1657a">
                     </div>
                 </div>
                 
@@ -305,8 +308,9 @@
         let chainlinkContract = null;
         
         // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            checkWalletConnection();
+        document.addEventListener("DOMContentLoaded", function() {
+            initializeProvider(); // Call directly to update contract status display
+            checkWalletConnection(); // Still check wallet connection
             setupEventListeners();
         });
 
@@ -334,7 +338,7 @@
                 const contractAddress = document.getElementById('chainlink-contract-address').value;
                 if (contractAddress && contractAddress !== '') {
                     chainlinkContract = new ethers.Contract(contractAddress, chainlinkFunctionsAbi, currentSigner);
-                    document.getElementById('contract-address').textContent = contractAddress;
+                    document.getElementById("chainlink-status-display").textContent = contractAddress;
                 }
             } catch (error) {
                 console.error('Erro ao inicializar provider:', error);
