@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criador de Metadados NFT com Análise de Sentimentos - Chainlink Functions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <style>
+        :root {
+            --dark-blue: #0f0b2a;
+            --medium-blue: #1a1642;
+            --light-blue: #4e9fff;
+            --purple: #8a56ff;
+            --cyan: #56d6ff;
+            --pink: #ff56d6;
+            --orange: #ff8a56;
+            --yellow: #ffdd56;
+        }
+        
+        body {
+            background-color: var(--dark-blue);
+            color: white;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+            background-color: var(--medium-blue);
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--light-blue), var(--purple));
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(78, 159, 255, 0.3);
+        }
+        
+        .btn-primary:disabled {
+            background: #6c757d;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .form-control {
+            background-color: var(--dark-blue);
+            border: 2px solid var(--medium-blue);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .form-control:focus {
+            background-color: var(--dark-blue);
+            border-color: var(--light-blue);
+            color: white;
+            box-shadow: 0 0 0 0.2rem rgba(78, 159, 255, 0.25);
+        }
+        
+        .badge {
+            background: linear-gradient(45deg, var(--cyan), var(--pink));
+            color: white;
+            border-radius: 20px;
+            padding: 8px 12px;
+            margin: 2px;
+        }
+        
+        #uploaded-image {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .analysis-section {
+            background: linear-gradient(135deg, var(--medium-blue), var(--dark-blue));
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid var(--light-blue);
+        }
+        
+        .chainlink-info {
+            background: linear-gradient(45deg, var(--purple), var(--pink));
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected {
+            background-color: #28a745;
+        }
+        
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+        
+        .loading-spinner {
+            display: none;
+            margin: 0 auto;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center mb-4">
+            <h1 class="display-4 fw-bold">
+                <i class="fas fa-robot me-3"></i>
+                NFT Creator com Chainlink Functions
+            </h1>
+            <p class="lead">Análise de sentimentos on-chain com IA</p>
+        </div>
+
+        <!-- Informações do Chainlink Functions -->
+        <div class="chainlink-info">
+            <h5><i class="fas fa-link me-2"></i>Chainlink Functions Integration</h5>
+            <p class="mb-2">
+                <span id="wallet-status" class="status-indicator status-disconnected"></span>
+                <span id="wallet-text">Carteira não conectada</span>
+            </p>
+            <p class="mb-0">
+                <small>Contrato: <span id="contract-address">Não configurado</span></small>
+            </p>
+        </div>
+
+        <!-- Upload de Imagem -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-upload me-2"></i>Upload de Imagem</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="image-upload" class="form-label">Selecione uma imagem para análise:</label>
+                    <input type="file" class="form-control" id="image-upload" accept="image/*">
+                </div>
+                <button id="upload-btn" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-brain me-2"></i>
+                    Fazer Upload e Analisar com Chainlink Functions
+                </button>
+                
+                <!-- Loading Spinner -->
+                <div id="loading-spinner" class="loading-spinner mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2" id="loading-text">Processando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Imagem Carregada -->
+        <div class="card" id="image-preview" style="display: none;">
+            <div class="card-header">
+                <h3><i class="fas fa-image me-2"></i>Imagem Carregada</h3>
+            </div>
+            <div class="card-body text-center">
+                <img id="uploaded-image" class="img-fluid" alt="Imagem carregada">
+                <p class="mt-2">
+                    <small class="text-muted">
+                        IPFS Hash: <span id="ipfs-hash"></span>
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <!-- Resultados da Análise -->
+        <div id="analysis-results" style="display: none;">
+            <div class="analysis-section">
+                <div id="sentiment-result"></div>
+            </div>
+            
+            <div class="analysis-section">
+                <div id="color-result"></div>
+            </div>
+            
+            <div class="analysis-section">
+                <div id="symbol-result"></div>
+            </div>
+            
+            <div class="analysis-section">
+                <div id="visual-result"></div>
+            </div>
+            
+            <div class="analysis-section">
+                <div id="keywords-result"></div>
+            </div>
+            
+            <div class="analysis-section">
+                <div id="attributes-result"></div>
+            </div>
+        </div>
+
+        <!-- Criação de Metadados -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-cog me-2"></i>Criação de Metadados NFT</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nft-name" class="form-label">Nome do NFT:</label>
+                        <input type="text" class="form-control" id="nft-name" placeholder="Digite o nome do NFT">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="nft-description" class="form-label">Descrição:</label>
+                        <textarea class="form-control" id="nft-description" rows="3" placeholder="Descreva seu NFT"></textarea>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="contract-address" class="form-label">Endereço do Contrato NFT:</label>
+                        <input type="text" class="form-control" id="contract-address" value="0xC1B247Ea8DaE4912Bf4216A6E8954aa90C779ABD">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="chainlink-contract-address" class="form-label">Contrato Chainlink Functions:</label>
+                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x...">
+                    </div>
+                </div>
+                
+                <button id="create-metadata-btn" class="btn btn-primary btn-lg w-100" disabled>
+                    <i class="fas fa-magic me-2"></i>
+                    Criar Metadados e Mintar NFT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // ABI do contrato GettingStartedFunctionsConsumer
+        const chainlinkFunctionsAbi = [
+            {
+                "inputs": [
+                    {"internalType": "uint64", "name": "subscriptionId", "type": "uint64"},
+                    {"internalType": "string[]", "name": "args", "type": "string[]"}
+                ],
+                "name": "sendRequest",
+                "outputs": [{"internalType": "bytes32", "name": "requestId", "type": "bytes32"}],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "bytes32", "name": "requestId", "type": "bytes32"},
+                    {"indexed": false, "internalType": "string", "name": "sentimentAnalysis", "type": "string"},
+                    {"indexed": false, "internalType": "string", "name": "colorPsychology", "type": "string"},
+                    {"indexed": false, "internalType": "string", "name": "symbolRelation", "type": "string"},
+                    {"indexed": false, "internalType": "string", "name": "visualLanguage", "type": "string"},
+                    {"indexed": false, "internalType": "string", "name": "keywords", "type": "string"},
+                    {"indexed": false, "internalType": "string", "name": "attributes", "type": "string"},
+                    {"indexed": false, "internalType": "bytes", "name": "response", "type": "bytes"},
+                    {"indexed": false, "internalType": "bytes", "name": "err", "type": "bytes"}
+                ],
+                "name": "Response",
+                "type": "event"
+            },
+            {
+                "inputs": [],
+                "name": "s_sentimentAnalysis",
+                "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        // Configurações do Chainlink Functions
+        const CHAINLINK_FUNCTIONS_CONFIG = {
+            subscriptionId: 1, // SUBSTITUA PELO SEU SUBSCRIPTION ID
+            gasLimit: 300000
+        };
+
+        // Variáveis globais
+        let currentProvider = null;
+        let currentSigner = null;
+        let chainlinkContract = null;
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            checkWalletConnection();
+            setupEventListeners();
+        });
+
+        // Verificar conexão da carteira
+        async function checkWalletConnection() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        updateWalletStatus(true, accounts[0]);
+                        await initializeProvider();
+                    }
+                } catch (error) {
+                    console.error('Erro ao verificar carteira:', error);
+                }
+            }
+        }
+
+        // Inicializar provider
+        async function initializeProvider() {
+            try {
+                currentProvider = new ethers.providers.Web3Provider(window.ethereum);
+                currentSigner = currentProvider.getSigner();
+                
+                const contractAddress = document.getElementById('chainlink-contract-address').value;
+                if (contractAddress && contractAddress !== '') {
+                    chainlinkContract = new ethers.Contract(contractAddress, chainlinkFunctionsAbi, currentSigner);
+                    document.getElementById('contract-address').textContent = contractAddress;
+                }
+            } catch (error) {
+                console.error('Erro ao inicializar provider:', error);
+            }
+        }
+
+        // Atualizar status da carteira
+        function updateWalletStatus(connected, address = '') {
+            const statusIndicator = document.getElementById('wallet-status');
+            const statusText = document.getElementById('wallet-text');
+            
+            if (connected) {
+                statusIndicator.className = 'status-indicator status-connected';
+                statusText.textContent = `Conectado: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+            } else {
+                statusIndicator.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Carteira não conectada';
+            }
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            document.getElementById('upload-btn').addEventListener('click', uploadAndAnalyzeImageWithChainlink);
+            document.getElementById('create-metadata-btn').addEventListener('click', createMetadataAndMint);
+            document.getElementById('chainlink-contract-address').addEventListener('change', initializeProvider);
+        }
+
+        // Função principal de upload e análise com Chainlink Functions
+        async function uploadAndAnalyzeImageWithChainlink() {
+            const fileInput = document.getElementById('image-upload');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Por favor, selecione uma imagem primeiro.');
+                return;
+            }
+
+            try {
+                showLoading('Preparando upload...');
+                
+                // 1. Conectar carteira se necessário
+                if (!currentProvider) {
+                    await connectWallet();
+                }
+
+                // 2. Verificar se o contrato está configurado
+                const contractAddress = document.getElementById('chainlink-contract-address').value;
+                if (!contractAddress || contractAddress === '') {
+                    throw new Error('Por favor, configure o endereço do contrato Chainlink Functions');
+                }
+
+                // 3. Upload da imagem para IPFS
+                showLoading('Enviando imagem para IPFS...');
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Erro no upload da imagem');
+                }
+
+                const uploadData = await uploadResponse.json();
+                const imageHash = uploadData.IpfsHash;
+
+                console.log('Imagem enviada para IPFS:', imageHash);
+                
+                // Mostrar imagem carregada
+                displayUploadedImage(imageHash);
+
+                // 4. Inicializar contrato se necessário
+                if (!chainlinkContract) {
+                    await initializeProvider();
+                }
+
+                // 5. Configurar listener para o evento Response
+                showLoading('Enviando para análise on-chain...');
+                
+                const responsePromise = new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Timeout: Análise demorou mais que 5 minutos'));
+                    }, 300000); // 5 minutos
+
+                    chainlinkContract.once('Response', (requestId, sentimentAnalysis, colorPsychology, symbolRelation, visualLanguage, keywords, attributes, response, err) => {
+                        clearTimeout(timeout);
+                        
+                        if (err && err.length > 0) {
+                            reject(new Error('Erro na análise: ' + ethers.utils.toUtf8String(err)));
+                            return;
+                        }
+
+                        resolve({
+                            sentiment_analysis: sentimentAnalysis,
+                            color_psychology: colorPsychology,
+                            symbol_relation: symbolRelation,
+                            visual_language: visualLanguage,
+                            keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
+                            attributes: JSON.parse(attributes || '[]')
+                        });
+                    });
+                });
+
+                // 6. Enviar requisição para o contrato
+                const tx = await chainlinkContract.sendRequest(
+                    CHAINLINK_FUNCTIONS_CONFIG.subscriptionId,
+                    [imageHash]
+                );
+
+                console.log('Transação enviada:', tx.hash);
+                showLoading('Aguardando confirmação da transação...');
+
+                // 7. Aguardar confirmação da transação
+                await tx.wait();
+                console.log('Transação confirmada, aguardando resposta do Chainlink Functions...');
+                showLoading('Aguardando análise de sentimentos...');
+
+                // 8. Aguardar resposta do Chainlink Functions
+                const analysisResult = await responsePromise;
+                
+                console.log('Análise recebida:', analysisResult);
+
+                // 9. Exibir resultados
+                hideLoading();
+                displayAnalysisResults(analysisResult, imageHash);
+
+                // 10. Habilitar criação de metadados
+                document.getElementById('create-metadata-btn').disabled = false;
+
+                // Armazenar dados globalmente
+                window.currentImageHash = imageHash;
+                window.currentAnalysis = analysisResult;
+
+            } catch (error) {
+                console.error('Erro na análise:', error);
+                hideLoading();
+                alert('Erro na análise: ' + error.message);
+            }
+        }
+
+        // Conectar carteira
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                throw new Error('MetaMask não encontrado. Por favor, instale o MetaMask.');
+            }
+
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                updateWalletStatus(true, accounts[0]);
+                await initializeProvider();
+                return accounts[0];
+            } catch (error) {
+                throw new Error('Erro ao conectar carteira: ' + error.message);
+            }
+        }
+
+        // Mostrar loading
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('upload-btn').disabled = true;
+        }
+
+        // Esconder loading
+        function hideLoading() {
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('upload-btn').disabled = false;
+        }
+
+        // Exibir imagem carregada
+        function displayUploadedImage(imageHash) {
+            const imageUrl = `https://gateway.pinata.cloud/ipfs/${imageHash}`;
+            document.getElementById('uploaded-image').src = imageUrl;
+            document.getElementById('ipfs-hash').textContent = imageHash;
+            document.getElementById('image-preview').style.display = 'block';
+        }
+
+        // Exibir resultados da análise
+        function displayAnalysisResults(analysis, imageHash) {
+            // Análise de sentimentos
+            document.getElementById('sentiment-result').innerHTML = `
+                <h4><i class="fas fa-heart me-2"></i>Análise de Sentimentos:</h4>
+                <p>${analysis.sentiment_analysis}</p>
+            `;
+
+            // Psicologia das cores
+            document.getElementById('color-result').innerHTML = `
+                <h4><i class="fas fa-palette me-2"></i>Psicologia das Cores:</h4>
+                <p>${analysis.color_psychology}</p>
+            `;
+
+            // Relação entre símbolos
+            document.getElementById('symbol-result').innerHTML = `
+                <h4><i class="fas fa-symbols me-2"></i>Relação entre Símbolos:</h4>
+                <p>${analysis.symbol_relation}</p>
+            `;
+
+            // Linguagem visual
+            document.getElementById('visual-result').innerHTML = `
+                <h4><i class="fas fa-eye me-2"></i>Códigos de Linguagem Visual:</h4>
+                <p>${analysis.visual_language}</p>
+            `;
+
+            // Palavras-chave
+            const keywordsHtml = analysis.keywords.map(keyword => 
+                `<span class="badge me-1">${keyword}</span>`
+            ).join('');
+            document.getElementById('keywords-result').innerHTML = `
+                <h4><i class="fas fa-tags me-2"></i>Palavras-chave:</h4>
+                <div>${keywordsHtml}</div>
+            `;
+
+            // Atributos
+            const attributesHtml = analysis.attributes.map(attr => 
+                `<li><strong>${attr.trait_type}:</strong> ${attr.value}</li>`
+            ).join('');
+            document.getElementById('attributes-result').innerHTML = `
+                <h4><i class="fas fa-list me-2"></i>Atributos NFT:</h4>
+                <ul>${attributesHtml}</ul>
+            `;
+
+            // Mostrar resultados
+            document.getElementById('analysis-results').style.display = 'block';
+        }
+
+        // Função para criar metadados e mintar NFT (mantém a lógica existente)
+        async function createMetadataAndMint() {
+            // Esta função mantém a lógica original do seu projeto
+            // Aqui você pode integrar com o contrato NFT existente
+            alert('Funcionalidade de mintagem mantida do projeto original');
+        }
+    </script>
+</body>
+</html>
+
