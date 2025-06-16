@@ -243,7 +243,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="chainlink-contract-address" class="form-label">Contrato Chainlink Functions:</label>
-                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x02d5E9C8BD9604fD838D79114505E35c14A1657a">
+                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x...">
                     </div>
                 </div>
                 
@@ -359,14 +359,19 @@
             checkWalletConnection(); 
             setupEventListeners();
 
-            // Configurar o botão de depuração
+            // Configurar o botão de depuração separadamente para garantir que funcione
             const toggleDebugBtn = document.getElementById('toggle-debug');
             const debugInfoDiv = document.getElementById('debug-info');
             if (toggleDebugBtn && debugInfoDiv) {
-                toggleDebugBtn.addEventListener('click', () => {
-                    debugInfoDiv.style.display = debugInfoDiv.style.display === 'none' ? 'block' : 'none';
-                    logDebugMessage(`Debug info visibility toggled to: ${debugInfoDiv.style.display}`);
+                toggleDebugBtn.addEventListener('click', function() {
+                    const currentDisplay = debugInfoDiv.style.display;
+                    const newDisplay = currentDisplay === 'none' ? 'block' : 'none';
+                    debugInfoDiv.style.display = newDisplay;
+                    logDebugMessage(`Debug info visibility toggled to: ${newDisplay}`);
                 });
+                logDebugMessage("Debug toggle button event listener added.");
+            } else {
+                logDebugMessage("Debug toggle button or debug info div not found!");
             }
         }
 
@@ -397,22 +402,27 @@
 
         // Conectar carteira
         async function connectWallet() {
-            logDebugMessage("Attempting to connect wallet...");
-            if (typeof window.ethereum !== 'undefined') {
-                try {
+            logDebugMessage("connectWallet function called!");
+            try {
+                logDebugMessage("Attempting to connect wallet...");
+                if (typeof window.ethereum !== 'undefined') {
+                    logDebugMessage("window.ethereum detected.");
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     if (accounts.length > 0) {
                         updateWalletStatus(true, accounts[0]);
                         logDebugMessage(`Wallet connected successfully: ${accounts[0]}`);
                         await initializeProvider();
+                    } else {
+                        logDebugMessage("No accounts returned from MetaMask.");
                     }
-                } catch (error) {
-                    logDebugMessage(`Error connecting wallet: ${error.message}`);
-                    console.error('Erro ao conectar carteira:', error);
+                } else {
+                    logDebugMessage("MetaMask not detected. Please install MetaMask.");
+                    alert('MetaMask não detectado. Por favor, instale a extensão MetaMask para usar este dApp.');
                 }
-            } else {
-                logDebugMessage("MetaMask not detected. Please install MetaMask.");
-                alert('MetaMask não detectado. Por favor, instale a extensão MetaMask para usar este dApp.');
+            } catch (error) {
+                logDebugMessage(`Error connecting wallet: ${error.message}`);
+                console.error('Erro ao conectar carteira:', error);
+                alert(`Erro ao conectar carteira: ${error.message}`);
             }
         }
 
@@ -491,13 +501,42 @@
         // Configurar event listeners
         function setupEventListeners() {
             logDebugMessage("Setting up event listeners...");
-            document.getElementById('upload-btn').addEventListener('click', uploadAndAnalyzeImageWithChainlink);
-            document.getElementById('create-metadata-btn').addEventListener('click', createMetadataAndMint);
-            document.getElementById('connect-wallet-btn').addEventListener('click', connectWallet);
             
-            // Listen for changes on the contract address input to re-initialize provider
-            document.getElementById('chainlink-contract-address').addEventListener('change', initializeProvider);
-            logDebugMessage("Event listeners configured.");
+            // Verificar se os elementos existem antes de adicionar event listeners
+            const uploadBtn = document.getElementById('upload-btn');
+            const createMetadataBtn = document.getElementById('create-metadata-btn');
+            const connectWalletBtn = document.getElementById('connect-wallet-btn');
+            const chainlinkContractInput = document.getElementById('chainlink-contract-address');
+            
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', uploadAndAnalyzeImageWithChainlink);
+                logDebugMessage("Upload button event listener added.");
+            } else {
+                logDebugMessage("Upload button not found!");
+            }
+            
+            if (createMetadataBtn) {
+                createMetadataBtn.addEventListener('click', createMetadataAndMint);
+                logDebugMessage("Create metadata button event listener added.");
+            } else {
+                logDebugMessage("Create metadata button not found!");
+            }
+            
+            if (connectWalletBtn) {
+                connectWalletBtn.addEventListener('click', connectWallet);
+                logDebugMessage("Connect wallet button event listener added.");
+            } else {
+                logDebugMessage("Connect wallet button not found!");
+            }
+            
+            if (chainlinkContractInput) {
+                chainlinkContractInput.addEventListener('change', initializeProvider);
+                logDebugMessage("Chainlink contract input event listener added.");
+            } else {
+                logDebugMessage("Chainlink contract input not found!");
+            }
+            
+            logDebugMessage("Event listeners configuration completed.");
         }
 
         // Função principal de upload e análise com Chainlink Functions
