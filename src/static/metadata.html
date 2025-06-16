@@ -6,7 +6,7 @@
     <title>Criador de Metadados NFT com Análise de Sentimentos - Chainlink Functions</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+
     <style>
         :root {
             --dark-blue: #0f0b2a;
@@ -144,9 +144,12 @@
                 <span id="wallet-status" class="status-indicator status-disconnected"></span>
                 <span id="wallet-text">Carteira não conectada</span>
             </p>
-            <p class="mb-0">
+            <p class="mb-2">
                 <small>Contrato: <span id="chainlink-status-display">Não configurado</span></small>
             </p>
+            <button id="connect-wallet-btn" class="btn btn-sm btn-outline-light">
+                <i class="fas fa-wallet me-2"></i>Conectar Carteira
+            </button>
         </div>
 
         <!-- Upload de Imagem -->
@@ -266,6 +269,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
     
     <script>
         // ABI do contrato GettingStartedFunctionsConsumer
@@ -331,7 +335,27 @@
         // Inicialização
         document.addEventListener("DOMContentLoaded", function() {
             logDebugMessage("DOM Content Loaded. Initializing...");
-            initializeProvider(); 
+            
+            // Verificar se ethers está disponível
+            if (typeof ethers === 'undefined') {
+                logDebugMessage("ethers is not defined. Waiting for library to load...");
+                setTimeout(() => {
+                    if (typeof ethers !== 'undefined') {
+                        logDebugMessage("ethers library loaded successfully.");
+                        initializeApp();
+                    } else {
+                        logDebugMessage("ethers library failed to load.");
+                    }
+                }, 1000);
+            } else {
+                logDebugMessage("ethers library is available.");
+                initializeApp();
+            }
+        });
+
+        // Função para inicializar a aplicação
+        function initializeApp() {
+            logDebugMessage("Initializing application...");
             checkWalletConnection(); 
             setupEventListeners();
 
@@ -344,7 +368,7 @@
                     logDebugMessage(`Debug info visibility toggled to: ${debugInfoDiv.style.display}`);
                 });
             }
-        });
+        }
 
         // Verificar conexão da carteira
         async function checkWalletConnection() {
@@ -396,6 +420,12 @@
         async function initializeProvider() {
             logDebugMessage("Initializing provider and Chainlink contract...");
             try {
+                // Verificar se ethers está disponível
+                if (typeof ethers === 'undefined') {
+                    logDebugMessage("ethers is not defined. Cannot initialize provider.");
+                    return;
+                }
+
                 if (typeof window.ethereum === 'undefined') {
                     logDebugMessage("window.ethereum is undefined. Cannot initialize provider.");
                     return;
@@ -463,6 +493,7 @@
             logDebugMessage("Setting up event listeners...");
             document.getElementById('upload-btn').addEventListener('click', uploadAndAnalyzeImageWithChainlink);
             document.getElementById('create-metadata-btn').addEventListener('click', createMetadataAndMint);
+            document.getElementById('connect-wallet-btn').addEventListener('click', connectWallet);
             
             // Listen for changes on the contract address input to re-initialize provider
             document.getElementById('chainlink-contract-address').addEventListener('change', initializeProvider);
@@ -607,4 +638,7 @@
     </script>
 </body>
 </html>
+
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
 
