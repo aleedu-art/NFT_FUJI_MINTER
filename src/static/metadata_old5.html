@@ -667,13 +667,17 @@
 
         // Análise de imagem por hash IPFS
         async function analyzeImageByHash(ipfsHash) {
-            // Usando apenas o endpoint que funciona
-            const endpoint = 'https://nft-fuji-minter.onrender.com/api/analyze-sentiment-chainlink';
-            
-            try {
-                logDebugMessage(`Trying analysis endpoint: ${endpoint}`);
-                
-                const response = await fetch(endpoint, {
+            const endpoints = [
+                'https://nft-fuji-minter.onrender.com/api/analyze-sentiment-chainlink',
+                'https://nft-fuji-minter.onrender.com/analyze-sentiment-chainlink',
+                'https://nft-fuji-minter.onrender.com/analyze'
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    logDebugMessage(`Trying analysis endpoint: ${endpoint}`);
+                    
+                    const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -688,14 +692,15 @@
                         const data = await response.json();
                         logDebugMessage(`Analysis successful via ${endpoint}`);
                         return data;
-                    } else {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
 
                 } catch (error) {
-                    logDebugMessage(`Analysis endpoint failed: ${error.message}`);
-                    throw new Error(`Endpoint de análise falhou: ${error.message}`);
+                    logDebugMessage(`Analysis endpoint ${endpoint} failed: ${error.message}`);
+                    continue;
                 }
+            }
+
+            throw new Error("Todos os endpoints de análise falharam.");
         }
 
         // Análise direta de imagem (fallback)
