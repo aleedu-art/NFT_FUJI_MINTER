@@ -6,7 +6,7 @@
     <title>Criador de Metadados NFT com Análise de Sentimentos - Chainlink Functions</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <style>
         :root {
             --dark-blue: #0f0b2a;
@@ -338,10 +338,11 @@
     </div>
 
     <!-- Scripts -->
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!--<script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    
+
     <script>
         // ABI do contrato Chainlink Functions
         const CHAINLINK_FUNCTIONS_ABI = [
@@ -378,7 +379,8 @@
         let currentSigner = null;
         let chainlinkContract = null;
         let currentImageHash = null;
-        let previewAnalysis = null;
+        //20250617 - linha abaixo comentada para evitar erro de variável não definida - duplicada
+      //  let previewAnalysis = null;
         
         // Função para logar mensagens de depuração
         function logDebugMessage(message) {
@@ -519,69 +521,32 @@
             logDebugMessage("Event listeners configured.");
         }
 
-        // Upload de imagem para IPFS com fallback HTTP/1.1
+        // Upload de imagem para IPFS
         async function uploadToIPFS(file) {
             logDebugMessage("Starting IPFS upload...");
             const formData = new FormData();
             formData.append('file', file);
 
-            // Lista de endpoints para tentar
-            const endpoints = [
-                'https://nft-fuji-minter.onrender.com/upload',
-                'https://nft-fuji-minter.onrender.com/api/upload',
-                'https://nft-fuji-minter.onrender.com/ipfs/upload'
-            ];
+            try {
+                const response = await fetch('https://nft-fuji-minter.onrender.com/upload', {
+                    method: 'POST',
+                    body: formData
+                });
 
-            for (const endpoint of endpoints) {
-                try {
-                    logDebugMessage(`Trying endpoint: ${endpoint}`);
-                    
-                    // Primeira tentativa com configuração padrão
-                    let response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        logDebugMessage(`IPFS upload successful. Hash: ${data.ipfs_hash}`);
-                        return data.ipfs_hash;
-                    }
-
-                    // Se falhou, tentar com headers específicos para HTTP/1.1
-                    logDebugMessage(`First attempt failed with status ${response.status}, trying with HTTP/1.1 headers...`);
-                    
-                    response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json',
-                            'Connection': 'close',
-                            'Cache-Control': 'no-cache'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        logDebugMessage(`IPFS upload successful with fallback. Hash: ${data.ipfs_hash}`);
-                        return data.ipfs_hash;
-                    }
-
-                } catch (error) {
-                    logDebugMessage(`Endpoint ${endpoint} failed: ${error.message}`);
-                    continue;
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            }
 
-            // Se todos os endpoints falharam, tentar o endpoint de análise diretamente
-            logDebugMessage("All upload endpoints failed, trying direct analysis...");
-            throw new Error("Todos os endpoints de upload falharam. Tente usar a pré-visualização.");
+                const data = await response.json();
+                logDebugMessage(`IPFS upload successful. Hash: ${data.ipfs_hash}`);
+                return data.ipfs_hash;
+            } catch (error) {
+                logDebugMessage(`IPFS upload failed: ${error.message}`);
+                throw error;
+            }
         }
 
-        // Pré-visualização da análise (chamada direta ao backend) com fallback
+        // Pré-visualização da análise (chamada direta ao backend)
         async function previewAnalysis() {
             logDebugMessage("Starting preview analysis...");
             const fileInput = document.getElementById('image-upload');
@@ -596,33 +561,31 @@
             try {
                 showLoading('Fazendo upload da imagem...');
                 
-                // Tentar upload para IPFS primeiro
-                let ipfsHash;
-                try {
-                    ipfsHash = await uploadToIPFS(file);
-                    currentImageHash = ipfsHash;
-                    displayUploadedImage(file, ipfsHash);
-                } catch (uploadError) {
-                    logDebugMessage(`Upload failed: ${uploadError.message}`);
-                    
-                    // Se upload falhou, tentar análise direta com base64
-                    showLoading('Upload falhou, tentando análise direta...');
-                    
-                    const base64 = await fileToBase64(file);
-                    const analysisData = await analyzeImageDirect(base64);
-                    
-                    hideLoading();
-                    displayPreviewAnalysis(analysisData);
-                    
-                    // Mostrar imagem sem IPFS hash
-                    displayUploadedImage(file, 'Análise direta (sem IPFS)');
-                    return;
-                }
+                // Upload para IPFS
+                const ipfsHash = await uploadToIPFS(file);
+                currentImageHash = ipfsHash;
+                
+                // Mostrar imagem carregada
+                displayUploadedImage(file, ipfsHash);
                 
                 showLoading('Analisando imagem com IA...');
                 
-                // Chamar backend para análise
-                const analysisData = await analyzeImageByHash(ipfsHash);
+                // Chamar backend diretamente para pré-visualização
+                const response = await fetch('https://nft-fuji-minter.onrender.com/api/analyze-sentiment-chainlink', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_hash: ipfsHash
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const analysisData = await response.json();
                 previewAnalysis = analysisData;
                 
                 logDebugMessage("Preview analysis completed successfully.");
@@ -635,70 +598,6 @@
                 alert(`Erro na pré-visualização: ${error.message}`);
                 hideLoading();
             }
-        }
-
-        // Converter arquivo para base64
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        // Análise de imagem por hash IPFS
-        async function analyzeImageByHash(ipfsHash) {
-            const endpoints = [
-                'https://nft-fuji-minter.onrender.com/api/analyze-sentiment-chainlink',
-                'https://nft-fuji-minter.onrender.com/analyze-sentiment-chainlink',
-                'https://nft-fuji-minter.onrender.com/analyze'
-            ];
-
-            for (const endpoint of endpoints) {
-                try {
-                    logDebugMessage(`Trying analysis endpoint: ${endpoint}`);
-                    
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            image_hash: ipfsHash
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        logDebugMessage(`Analysis successful via ${endpoint}`);
-                        return data;
-                    }
-
-                } catch (error) {
-                    logDebugMessage(`Analysis endpoint ${endpoint} failed: ${error.message}`);
-                    continue;
-                }
-            }
-
-            throw new Error("Todos os endpoints de análise falharam.");
-        }
-
-        // Análise direta de imagem (fallback)
-        async function analyzeImageDirect(base64Image) {
-            logDebugMessage("Attempting direct image analysis...");
-            
-            // Simular análise local (placeholder)
-            // Em uma implementação real, isso poderia chamar uma API alternativa
-            return {
-                sentiment_analysis: "Análise de sentimentos não disponível (modo offline)",
-                color_psychology: "Análise de cores não disponível (modo offline)", 
-                symbol_relation: "Análise simbólica não disponível (modo offline)",
-                visual_language: "Análise visual não disponível (modo offline)",
-                keywords: ["imagem", "análise", "offline"],
-                attributes: {"modo": "offline", "status": "fallback"}
-            };
         }
 
         // Exibir pré-visualização da análise
