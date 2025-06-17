@@ -376,9 +376,11 @@
         let currentSigner = null;
         let chainlinkContract = null;
         let currentImageHash = null;
-        //20250617 - linha abaixo comentada para evitar erro de variável não definida - duplicada
-        //let previewAnalysis = null;
+
         
+          //20250617 - linha abaixo comentada para evitar erro de variável não definida - duplicada
+      //  let previewAnalysis = null;     
+
         // Função para logar mensagens de depuração
         function logDebugMessage(message) {
             const debugInfo = document.getElementById('debug-info');
@@ -549,7 +551,7 @@
                         logDebugMessage(`IPFS upload response: ${JSON.stringify(data)}`);
                         
                         // Verificar se o hash existe e é válido
-                        const hash = data.IpfsHash || data.ipfs_hash || data.hash || data.ipfsHash;
+                        const hash = data.ipfs_hash || data.hash || data.ipfsHash;
                         if (hash && hash.length > 0) {
                             logDebugMessage(`IPFS upload successful. Hash: ${hash}`);
                             return hash;
@@ -577,7 +579,7 @@
                         logDebugMessage(`IPFS upload fallback response: ${JSON.stringify(data)}`);
                         
                         // Verificar se o hash existe e é válido
-                        const hash = data.IpfsHash || data.ipfs_hash || data.hash || data.ipfsHash;
+                        const hash = data.ipfs_hash || data.hash || data.ipfsHash;
                         if (hash && hash.length > 0) {
                             logDebugMessage(`IPFS upload successful with fallback. Hash: ${hash}`);
                             return hash;
@@ -640,8 +642,7 @@
                 
                 // Chamar backend para análise
                 const analysisData = await analyzeImageByHash(ipfsHash);
-                // Armazenar análise para uso posterior (se necessário)
-                window.currentPreviewAnalysis = analysisData;
+                previewAnalysis = analysisData;
                 
                 logDebugMessage("Preview analysis completed successfully.");
                 hideLoading();
